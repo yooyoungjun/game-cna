@@ -131,10 +131,10 @@ Game 이벤트
         - 미션시작됨, 미션결과전송됨, 리워드가선택됨, 리워드정보가전송됨 :  업무적인 의미의 이벤트가 아니라서 제외
 
 ### 액터, 커맨드 부착하여 읽기 좋게
-![image](https://user-images.githubusercontent.com/68723566/93052803-c431ff80-f6a1-11ea-899d-94035a33d39f.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93055957-b0d56300-f6a6-11ea-8709-1841eb97b5de.png)
 
 ### 어그리게잇으로 묶기
-![image](https://user-images.githubusercontent.com/68723566/93052805-c4ca9600-f6a1-11ea-9baa-d6d895ab91d1.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93055952-b03ccc80-f6a6-11ea-91b2-bc5ce3e5575c.png)
 
     - app의 Order, store 의 주문처리, 결제의 결제이력은 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 그들 끼리 묶어줌
 
