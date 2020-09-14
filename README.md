@@ -122,10 +122,10 @@ Game 이벤트
 
 
 ### 이벤트 도출
-![image](https://user-images.githubusercontent.com/68723566/93052800-c3996900-f6a1-11ea-9073-19c2994e23e2.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93055272-9a7ad780-f6a5-11ea-9c04-b09e1d89a335.png)
 
 ### 부적격 이벤트 탈락
-![image](https://user-images.githubusercontent.com/68723566/93052802-c3996900-f6a1-11ea-881b-d714b1113ba1.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93055275-9bac0480-f6a5-11ea-8a2e-562c465183b5.png)
 
     - 과정중 도출된 잘못된 도메인 이벤트들을 걸러내는 작업을 수행함
         - 미션시작됨, 미션결과전송됨, 리워드가선택됨, 리워드정보가전송됨 :  업무적인 의미의 이벤트가 아니라서 제외
