@@ -285,7 +285,7 @@ http localhost:8083/wallets/1
 
 분석단계에서의 조건 중 하나로 wallet -> gift 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
 
-- 결제서비스를 호출하기 위하여 Stub과 (FeignClient) 를 이용하여 Service 대행 인터페이스 (Proxy) 를 구현 
+- reward 서비스를 호출하기 위하여 Stub과 (FeignClient) 를 이용하여 Service 대행 인터페이스 (Proxy) 를 구현 
 
 ```
 # (wallet) giftService.java
@@ -299,7 +299,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.util.Date;
 
-// @FeignClient(name="gift", url="http://gift:8080")
 @FeignClient(name="gift", url="${api.url.gift}", fallback = GiftServiceFallback.class)
 public interface GiftService {
 
@@ -309,7 +308,7 @@ public interface GiftService {
 }
 ```
 
-- Commit 후(@PostPersist) gift에 요청하도록 처리
+- update하기 전(@PreUpdate) gift 서비스에 요청하도록 처리
 ```
 # Wallet.java (Entity)
 
@@ -348,7 +347,7 @@ http localhost:80813/wallets/1 status=Exchanged    #Success
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
 
-mission 이루어진 후에 reward에 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하여 mission 시스템이 블락되지 않아도록 처리한다.
+mission 달성이 이루어진 후에 reward에 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하여 mission 시스템이 블락되지 않아도록 처리한다.
  
 - 이를 위하여 mission 달성 기록을 남긴 후에 곧바로 reward를 요청하는 이벤트를 카프카로 송출한다(Publish)
  
@@ -383,7 +382,7 @@ public void wheneverMissionAchieved_Allocate(@Payload MissionAchieved missionAch
 }
 ```
 
-mission - reward 시스템은 이벤트 수신에 따라 처리되기 때문에, reward 시스템이 유지보수로 인해 잠시 내려간 상태라도 주문을 받는데 문제가 없다:
+mission - reward 시스템은 이벤트 수신에 따라 처리되기 때문에, reward 시스템이 유지보수로 인해 잠시 내려간 상태라도 미션을 달성하는데 문제가 없다:
 ```
 # reward 서비스를 잠시 내려놓음 (ctrl+c)
 
