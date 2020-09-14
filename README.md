@@ -159,7 +159,7 @@ Game 이벤트
 
 ![image](https://user-images.githubusercontent.com/68723566/93046088-ecb2fd00-f693-11ea-836f-bd166b106df1.png)
 
-    - View Model 추가
+    - mypage 추가
 
 
 ### 비기능 요구사항에 대한 검증
