@@ -114,7 +114,7 @@ Game 이벤트
   ![image](https://user-images.githubusercontent.com/487999/79684144-2a893200-826a-11ea-9a01-79927d3a0107.png)
 
 ## TO-BE 조직 (Vertically-Aligned)
-  ![image](https://user-images.githubusercontent.com/68723566/93052793-bf6d4b80-f6a1-11ea-82f3-41a2fb4fe4d1.PNG)
+  ![image](https://user-images.githubusercontent.com/68723566/93055595-2db40d00-f6a6-11ea-92c6-b6e48120c03a.PNG)
 
 
 ## Event Storming 결과
@@ -140,7 +140,7 @@ Game 이벤트
 
 ### 바운디드 컨텍스트로 묶기
 
-![image](https://user-images.githubusercontent.com/68723566/93052808-c4ca9600-f6a1-11ea-958b-e97638f0142e.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93055597-2e4ca380-f6a6-11ea-9659-490691030847.PNG)
 
     - 도메인 서열 분리 
         - Core Domain:  app(front), store : 없어서는 안될 핵심 서비스이며, 연견 Up-time SLA 수준을 99.999% 목표, 배포주기는 app 의 경우 1주일 1회 미만, store 의 경우 1개월 1회 미만
@@ -149,11 +149,11 @@ Game 이벤트
 
 ### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
 
-![image](https://user-images.githubusercontent.com/68723566/93052809-c5632c80-f6a1-11ea-8190-0a78791deeb6.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93055598-2e4ca380-f6a6-11ea-9795-44f8d2aa6c77.PNG)
 
 ### 폴리시의 이동과 컨텍스트 매핑 (점선은 Pub/Sub, 실선은 Req/Resp)
 
-![image](https://user-images.githubusercontent.com/68723566/93052811-c5632c80-f6a1-11ea-8685-fe6bf1c12493.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93055599-2ee53a00-f6a6-11ea-82be-79f3bfa31274.PNG)
 
 ### 완성된 1차 모형
 
@@ -185,7 +185,7 @@ Game 이벤트
 
 ### 비기능 요구사항에 대한 검증
 
-![image](https://user-images.githubusercontent.com/68723566/93053380-ad3fdd00-f6a2-11ea-99a0-350e1bd92fb2.png)
+![image](https://user-images.githubusercontent.com/68723566/93055591-2c82e000-f6a6-11ea-9ad7-bf60afb7df54.PNG)
 
     - 마이크로 서비스를 넘나드는 시나리오에 대한 트랜잭션 처리
         - 상품으로 교환이 되지 않으면, 리워드의 상태는 그대로 유지가 된다. Sync 호출
