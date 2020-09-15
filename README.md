@@ -207,8 +207,6 @@ mvn spring-boot:run
 cd game-mypage
 mvn spring-boot:run 
 
-cd game-payment
-mvn spring-boot:run 
 ```
 
 ## DDD 의 적용
@@ -551,7 +549,7 @@ AWS Console Code Build 화면 (여러 Component들 중 일부만 캡처 했습�
 앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다. 
 
 
-- reward 서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 20프로를 넘어서면 replica 를 10개까지 늘려준다
+- mypage 서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 20프로를 넘어서면 replica 를 10개까지 늘려준다
 HPA 설정 확인
 ![image](https://user-images.githubusercontent.com/24929411/93174730-6c5ecb80-f769-11ea-81c6-a5086cc57e01.png)
 
@@ -560,10 +558,10 @@ HPA 설정 확인
 
 Siege를 통해 game-mypage Pod에 부하
 ```
-$ siege -c50 -t50S -v http://game-mypage:8080/mypages/1
+$ siege -c150 -t60S -v http://game-mypage:8080/mypages/1 
 ```
 
-부하에 따라 game-mypage pod의 CPU 사용율이 증가 했고, Pod Replic수가 증가 하는것을 확인할 수 있음 
+부하에 따라 game-mypage pod의 CPU 사용율이 증가 했고, Pod Replica 수가 증가 하는것을 확인할 수 있음 
 ![image](https://user-images.githubusercontent.com/24929411/93176312-0e7fb300-f76c-11ea-86d3-3e56074a4a30.png)
 
 
@@ -574,64 +572,18 @@ $ siege -c50 -t50S -v http://game-mypage:8080/mypages/1
 각각 component에 readiness probe 설정 확인 (game-mission pod의 yaml)
 ![image](https://user-images.githubusercontent.com/24929411/93157685-a5854480-f745-11ea-8e50-884ad7f1f4f8.png)
 
-* 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
-
-- seige 로 배포작업 직전에 워크로드를 모니터링 함.
+무정지 재배포 테스트 시나리오
+- siege 로 배포작업 직전에 워크로드를 모니터링함. 
 ```
-siege -c2 -t10S -v --content-type "application/json" 'http://localhost:8081/wallets/1 PATCH {"status": "Exchanged"}'
-
-** SIEGE 4.0.5
-** Preparing 100 concurrent users for battle.
-The server is now under siege...
-
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-:
-
+$ siege -c2 -t100S -v http://game-mypage:8080/mypages/1
 ```
-
-- 새버전으로의 배포 시작
+- game-mypage의 image 버전을 update 
 ```
-kubectl set image ...
+kubectl set image deployment/game-mypage game-mypage=271153858532.dkr.ecr.ap-northeast-2.amazonaws.com/game-mypage:f9231b22ed9426a743caa30f64bf6973e171993e
 ```
+- siege의 결과값이 100% 성공이면 무정지 재배포됨을 확인
+![image](https://user-images.githubusercontent.com/24929411/93181352-5524db80-f773-11ea-9e50-f9bff8acac2a.png)
 
-- seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
-```
-Transactions:		        3078 hits
-Availability:		       70.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-
-```
-배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함:
-
-```
-# deployment.yaml 의 readiness probe 의 설정:
-
-
-kubectl apply -f kubernetes/deployment.yaml
-```
-
-- 동일한 시나리오로 재배포 한 후 Availability 확인:
-```
-Transactions:		        3078 hits
-Availability:		       100 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-
-```
-
-배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
 
 ## ConfigMap/Persistence Volume (10)
 
@@ -639,82 +591,38 @@ Concurrency:		       96.02
 
 Java application.yml 환경변수 적용을 위해 ConfigMap 설정
 
-Mypage Pod (kubectl get pods Mypage -o yaml)
+Mypage Pod (kubectl get deployment game-mypage -o yaml)
+
+configMap으로 부터 변수 가져오는 설정:
+![image](https://user-images.githubusercontent.com/24929411/93177206-68cd4380-f76d-11ea-9531-91e63ff91737.png)
+
+
+configMap에 설정된 데이터 확인 (kubectl get cm teamb-config -o yaml)
+![image](https://user-images.githubusercontent.com/24929411/93177339-a03bf000-f76d-11ea-9199-b77ad9867c9d.png)
+
 
 ### Persistence Volume
+데이터를 영구적으로 보관하기 위해 efs 사용.
+
+PVC 확인
+![image](https://user-images.githubusercontent.com/24929411/93179564-cb740e80-f770-11ea-9484-430b53e39f5a.png)
+
+game-mypage Deployment에서 해당 pvc를 volumeMount 하여 사용 (kubectl get deployment game-mypage -o yaml)
+![image](https://user-images.githubusercontent.com/24929411/93179706-037b5180-f771-11ea-828c-17e59980c0ab.png)
 
 
 
 ## Polyglot (11)
 
+각 서비스에 맞는 여러가지 데이터베이스 사용 (H2, RDS)
 
-
-
-
-# TODO 개인 프로젝트 추가 시 아래에 작성
-
-# 신규 개발 조직의 추가
-
-  ![image](https://user-images.githubusercontent.com/487999/79684133-1d6c4300-826a-11ea-94a2-602e61814ebf.png)
-
-
-## 마케팅팀의 추가
-    - KPI: 신규 고객의 유입률 증대와 기존 고객의 충성도 향상
-    - 구현계획 마이크로 서비스: 기존 customer 마이크로 서비스를 인수하며, 고객에 음식 및 맛집 추천 서비스 등을 제공할 예정
-
-## 이벤트 스토밍 
-    ![image](https://user-images.githubusercontent.com/487999/79685356-2b729180-8273-11ea-9361-a434065f2249.png)
-
-
-## 헥사고날 아키텍처 변화 
-
-![image](https://user-images.githubusercontent.com/487999/79685243-1d704100-8272-11ea-8ef6-f4869c509996.png)
-
-## 구현  
-
-기존의 마이크로 서비스에 수정을 발생시키지 않도록 Inbund 요청을 REST 가 아닌 Event 를 Subscribe 하는 방식으로 구현. 기존 마이크로 서비스에 대하여 아키텍처나 기존 마이크로 서비스들의 데이터베이스 구조와 관계없이 추가됨. 
-
-## 운영과 Retirement
-
-Request/Response 방식으로 구현하지 않았기 때문에 서비스가 더이상 불필요해져도 Deployment 에서 제거되면 기존 마이크로 서비스에 어떤 영향도 주지 않음.
-
-* [비교] 결제 (pay) 마이크로서비스의 경우 API 변화나 Retire 시에 app(주문) 마이크로 서비스의 변경을 초래함:
-
-예) API 변화시
+RDS를 사용하는 game-mypage의 application.yml 설정
 ```
-# Order.java (Entity)
-
-    @PostPersist
-    public void onPostPersist(){
-
-        fooddelivery.external.결제이력 pay = new fooddelivery.external.결제이력();
-        pay.setOrderId(getOrderId());
-        
-        Application.applicationContext.getBean(fooddelivery.external.결제이력Service.class)
-                .결제(pay);
-
-                --> 
-
-        Application.applicationContext.getBean(fooddelivery.external.결제이력Service.class)
-                .결제2(pay);
-
-    }
-```
-
-예) Retire 시
-```
-# Order.java (Entity)
-
-    @PostPersist
-    public void onPostPersist(){
-
-        /**
-        fooddelivery.external.결제이력 pay = new fooddelivery.external.결제이력();
-        pay.setOrderId(getOrderId());
-        
-        Application.applicationContext.getBean(fooddelivery.external.결제이력Service.class)
-                .결제(pay);
-
-        **/
-    }
+...
+  datasource:
+    url: jdbc:mariadb://team-mariadb.cuy0kl2qzoel.ap-northeast-2.rds.amazonaws.com:3306/teamb-mariadb?useUnicode=yes&characterEncoding=UTF-8
+    driver-class-name: org.mariadb.jdbc.Driver
+    username: xxxxx
+    password: xxxxxxx
+...
 ```
