@@ -134,7 +134,7 @@ Game 이벤트
 ### 어그리게잇으로 묶기
 ![image](https://user-images.githubusercontent.com/68723566/93150530-5f73b500-f734-11ea-80c1-03d49ec30252.PNG)
 
-    - app의 Order, store 의 주문처리, 결제의 결제이력은 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 그들 끼리 묶어줌
+    - mission과 reward, wallet은 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 그들 끼리 묶어줌
 
 ### 바운디드 컨텍스트로 묶기
 
@@ -145,7 +145,7 @@ Game 이벤트
         - Supporting Domain:   marketing, customer : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 60% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
         - General Domain:   pay : 결제서비스로 3rd Party 외부 서비스를 사용하는 것이 경쟁력이 높음 (핑크색으로 이후 전환할 예정)
 
-### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
+### 폴리시 부착 
 
 ![image](https://user-images.githubusercontent.com/68723566/93150533-60a4e200-f734-11ea-929a-fcd4a940d1c7.PNG)
 
@@ -153,12 +153,17 @@ Game 이벤트
 
 ![image](https://user-images.githubusercontent.com/68723566/93150534-60a4e200-f734-11ea-8a82-06a6e3b48289.PNG)
 
-### 완성된 1차 모형
-
+   
+### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
 ![image](https://user-images.githubusercontent.com/68723566/93046088-ecb2fd00-f693-11ea-836f-bd166b106df1.png)
 
-    - mypage 추가
-
+    - 고객이 미션을 달성한다 (ok)
+    - 달성 된 미션 결과가 리워드로 할당 된다 (ok)
+    - 할당 된 리워드를 지갑으로 발행한다 (ok)
+    - 리워드가 할당 되면 미션 결과에 반영 된다 (ok)    
+    - 지갑에 발행된 리워드를 상품으로 교환한다 (ok)
+    - 발행 된 결과가 리워드에 반영이 된다 (ok)    
+    
 
 ### 비기능 요구사항에 대한 검증
 
