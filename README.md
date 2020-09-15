@@ -4,7 +4,6 @@
 이는 클라우드 네이티브 애플리케이션의 개발에 요구되는 체크포인트들을 통과하기 위한 예시 답안을 포함합니다.
 - 체크포인트 : https://workflowy.com/s/assessment-check-po/T5YrzcMewfo4J6LW
 
-
 # Table of contents
 
 - [예제 - 게임 이벤트 리워드 기능](#---)
@@ -116,7 +115,8 @@ Game 이벤트
 
 
 ## Event Storming 결과
-* MSAEz 로 모델링한 이벤트스토밍 결과:  http://msaez.io/#/storming/nZJ2QhwVc4NlVJPbtTkZ8x9jclF2/every/a77281d704710b0c2e6a823b6e6d973a/-M5AV2z--su_i4BfQfeF
+* MSAEz 로 모델링한 이벤트스토밍 결과
+![image](https://user-images.githubusercontent.com/68723566/93046088-ecb2fd00-f693-11ea-836f-bd166b106df1.png)
 
 
 ### 이벤트 도출
@@ -141,9 +141,9 @@ Game 이벤트
 ![image](https://user-images.githubusercontent.com/68723566/93150532-600c4b80-f734-11ea-9a07-1be17bba9755.PNG)
 
     - 도메인 서열 분리 
-        - Core Domain:  app(front), store : 없어서는 안될 핵심 서비스이며, 연견 Up-time SLA 수준을 99.999% 목표, 배포주기는 app 의 경우 1주일 1회 미만, store 의 경우 1개월 1회 미만
-        - Supporting Domain:   marketing, customer : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 60% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
-        - General Domain:   pay : 결제서비스로 3rd Party 외부 서비스를 사용하는 것이 경쟁력이 높음 (핑크색으로 이후 전환할 예정)
+        - Core Domain:  mission(front), wallet : 없어서는 안될 핵심 서비스이며, 연견 Up-time SLA 수준을 99.999% 목표, 배포주기는 mission 의 경우 1개월 1회 미만, wallet의 경우 2개월 1회 미만
+        - Supporting Domain:   reward : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 70% 이상 uptime 목표, 배포주기는 각 팀의 자율임
+        - General Domain:   gift: 상품 교환 서비스로 3rd Party 외부 서비스를 사용하는 것도 경쟁력에 도움이 됨
 
 ### 폴리시 부착 
 
@@ -179,12 +179,11 @@ Game 이벤트
 
 ## 헥사고날 아키텍처 다이어그램 도출
     
-![image](https://user-images.githubusercontent.com/68723566/93052814-c5fbc300-f6a1-11ea-88f1-0255221b2f28.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93185524-7a681880-f778-11ea-8372-7e490d648748.PNG)
 
 
     - Chris Richardson, MSA Patterns 참고하여 Inbound adaptor와 Outbound adaptor를 구분함
     - 호출관계에서 PubSub 과 Req/Resp 를 구분함
-    - 서브 도메인과 바운디드 컨텍스트의 분리:  각 팀의 KPI 별로 아래와 같이 관심 구현 스토리를 나눠가짐
 
 
 # 구현:
