@@ -1,3 +1,30 @@
+# Game 이벤트 리워드 기능 구현
+
+본 예제는 MSA/DDD/Event Storming/EDA 를 포괄하는 분석/설계/구현/운영 전단계를 커버하도록 구성한 예제입니다.
+이는 클라우드 네이티브 애플리케이션의 개발에 요구되는 체크포인트들을 통과하기 위한 예시 답안을 포함합니다.
+- 체크포인트 : https://workflowy.com/s/assessment-check-po/T5YrzcMewfo4J6LW
+
+
+# Table of contents
+
+- [예제 - 게임 이벤트 리워드 기능](#---)
+  - [서비스 시나리오](#서비스-시나리오)
+  - [체크포인트](#체크포인트)
+  - [분석/설계](#분석설계)
+  - [구현:](#구현-)
+    - [DDD 의 적용](#ddd-의-적용)
+    - [폴리글랏 퍼시스턴스](#폴리글랏-퍼시스턴스)
+    - [폴리글랏 프로그래밍](#폴리글랏-프로그래밍)
+    - [동기식 호출 과 Fallback 처리](#동기식-호출-과-Fallback-처리)
+    - [비동기식 호출 과 Eventual Consistency](#비동기식-호출-과-Eventual-Consistency)
+  - [운영](#운영)
+    - [CI/CD 설정](#cicd설정)
+    - [동기식 호출 / 서킷 브레이킹 / 장애격리](#동기식-호출-서킷-브레이킹-장애격리)
+    - [오토스케일 아웃](#오토스케일-아웃)
+    - [무정지 재배포](#무정지-재배포)
+  - [신규 개발 조직의 추가](#신규-개발-조직의-추가)
+
+
 # 서비스 시나리오
 
 Game 이벤트
@@ -19,8 +46,6 @@ Game 이벤트
 1. 성능
     1. 고객이 달성한 미션과 지갑의 리워드 상태를 마이페이지(프론트엔드)에서 확인할 수 있어야 한다  CQRS
 
-
-<img src="https://user-images.githubusercontent.com/64522956/93035984-7f926e00-f679-11ea-81e0-7c39a8e17c2d.png" width="90%"></img>
 
 # 체크포인트
 
@@ -87,7 +112,7 @@ Game 이벤트
   ![image](https://user-images.githubusercontent.com/487999/79684144-2a893200-826a-11ea-9a01-79927d3a0107.png)
 
 ## TO-BE 조직 (Vertically-Aligned)
-  ![image](https://user-images.githubusercontent.com/487999/79684159-3543c700-826a-11ea-8d5f-a3fc0c4cad87.png)
+  ![image](https://user-images.githubusercontent.com/68723566/93055595-2db40d00-f6a6-11ea-92c6-b6e48120c03a.PNG)
 
 
 ## Event Storming 결과
@@ -95,82 +120,66 @@ Game 이벤트
 
 
 ### 이벤트 도출
-![image](https://user-images.githubusercontent.com/487999/79683604-47bc0180-8266-11ea-9212-7e88c9bf9911.png)
+![image](https://user-images.githubusercontent.com/68723566/93055272-9a7ad780-f6a5-11ea-9c04-b09e1d89a335.png)
 
 ### 부적격 이벤트 탈락
-![image](https://user-images.githubusercontent.com/487999/79683612-4b4f8880-8266-11ea-9519-7e084524a462.png)
+![image](https://user-images.githubusercontent.com/68723566/93055275-9bac0480-f6a5-11ea-8a2e-562c465183b5.png)
 
     - 과정중 도출된 잘못된 도메인 이벤트들을 걸러내는 작업을 수행함
-        - 주문시>메뉴카테고리선택됨, 주문시>메뉴검색됨 :  UI 의 이벤트이지, 업무적인 의미의 이벤트가 아니라서 제외
+        - 미션시작됨, 미션결과전송됨, 리워드가선택됨, 리워드정보가전송됨 :  업무적인 의미의 이벤트가 아니라서 제외
 
 ### 액터, 커맨드 부착하여 읽기 좋게
-![image](https://user-images.githubusercontent.com/487999/79683614-4ee30f80-8266-11ea-9a50-68cdff2dcc46.png)
+![image](https://user-images.githubusercontent.com/68723566/93150528-5e428800-f734-11ea-86ab-cb8d82607c86.PNG)
 
 ### 어그리게잇으로 묶기
-![image](https://user-images.githubusercontent.com/487999/79683618-52769680-8266-11ea-9c21-48d6812444ba.png)
+![image](https://user-images.githubusercontent.com/68723566/93150530-5f73b500-f734-11ea-80c1-03d49ec30252.PNG)
 
-    - app의 Order, store 의 주문처리, 결제의 결제이력은 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 그들 끼리 묶어줌
+    - mission과 reward, wallet은 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 그들 끼리 묶어줌
 
 ### 바운디드 컨텍스트로 묶기
 
-![image](https://user-images.githubusercontent.com/487999/79683625-560a1d80-8266-11ea-9790-40d68a36d95d.png)
+![image](https://user-images.githubusercontent.com/68723566/93150532-600c4b80-f734-11ea-9a07-1be17bba9755.PNG)
 
     - 도메인 서열 분리 
         - Core Domain:  app(front), store : 없어서는 안될 핵심 서비스이며, 연견 Up-time SLA 수준을 99.999% 목표, 배포주기는 app 의 경우 1주일 1회 미만, store 의 경우 1개월 1회 미만
         - Supporting Domain:   marketing, customer : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 60% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
         - General Domain:   pay : 결제서비스로 3rd Party 외부 서비스를 사용하는 것이 경쟁력이 높음 (핑크색으로 이후 전환할 예정)
 
-### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
+### 폴리시 부착 
 
-![image](https://user-images.githubusercontent.com/487999/79683633-5aced180-8266-11ea-8f42-c769eb88dfb1.png)
+![image](https://user-images.githubusercontent.com/68723566/93150533-60a4e200-f734-11ea-929a-fcd4a940d1c7.PNG)
 
 ### 폴리시의 이동과 컨텍스트 매핑 (점선은 Pub/Sub, 실선은 Req/Resp)
 
-![image](https://user-images.githubusercontent.com/487999/79683641-5f938580-8266-11ea-9fdb-4e80ff6642fe.png)
+![image](https://user-images.githubusercontent.com/68723566/93150534-60a4e200-f734-11ea-8a82-06a6e3b48289.PNG)
 
-### 완성된 1차 모형
+   
+### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
+![image](https://user-images.githubusercontent.com/68723566/93046088-ecb2fd00-f693-11ea-836f-bd166b106df1.png)
 
-![image](https://user-images.githubusercontent.com/487999/79683646-63bfa300-8266-11ea-9bc5-c0b650507ac8.png)
-
-    - View Model 추가
-
-### 1차 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
-
-![image](https://user-images.githubusercontent.com/487999/79684167-3ecd2f00-826a-11ea-806a-957362d197e3.png)
-
-    - 고객이 메뉴를 선택하여 주문한다 (ok)
-    - 고객이 결제한다 (ok)
-    - 주문이 되면 주문 내역이 입점상점주인에게 전달된다 (ok)
-    - 상점주인이 확인하여 요리해서 배달 출발한다 (ok)
-
-![image](https://user-images.githubusercontent.com/487999/79684170-47256a00-826a-11ea-9777-e16fafff519a.png)
-    - 고객이 주문을 취소할 수 있다 (ok)
-    - 주문이 취소되면 배달이 취소된다 (ok)
-    - 고객이 주문상태를 중간중간 조회한다 (View-green sticker 의 추가로 ok) 
-    - 주문상태가 바뀔 때 마다 카톡으로 알림을 보낸다 (?)
-
-
-### 모델 수정
-
-![image](https://user-images.githubusercontent.com/487999/79684176-4e4c7800-826a-11ea-8deb-b7b053e5d7c6.png)
+    - 고객이 미션을 달성한다 (ok)
+    - 달성 된 미션 결과가 리워드로 할당 된다 (ok)
+    - 할당 된 리워드를 지갑으로 발행한다 (ok)
+    - 리워드가 할당 되면 미션 결과에 반영 된다 (ok)    
+    - 지갑에 발행된 리워드를 상품으로 교환한다 (ok)
+    - 발행 된 결과가 리워드에 반영이 된다 (ok)    
     
-    - 수정된 모델은 모든 요구사항을 커버함.
 
 ### 비기능 요구사항에 대한 검증
 
-![image](https://user-images.githubusercontent.com/487999/79684184-5c9a9400-826a-11ea-8d87-2ed1e44f4562.png)
+![image](https://user-images.githubusercontent.com/68723566/93150535-613d7880-f734-11ea-8bc9-5342aea2cbb0.PNG)
 
     - 마이크로 서비스를 넘나드는 시나리오에 대한 트랜잭션 처리
-        - 고객 주문시 결제처리:  결제가 완료되지 않은 주문은 절대 받지 않는다는 경영자의 오랜 신념(?) 에 따라, ACID 트랜잭션 적용. 주문와료시 결제처리에 대해서는 Request-Response 방식 처리
-        - 결제 완료시 점주연결 및 배송처리:  App(front) 에서 Store 마이크로서비스로 주문요청이 전달되는 과정에 있어서 Store 마이크로 서비스가 별도의 배포주기를 가지기 때문에 Eventual Consistency 방식으로 트랜잭션 처리함.
-        - 나머지 모든 inter-microservice 트랜잭션: 주문상태, 배달상태 등 모든 이벤트에 대해 카톡을 처리하는 등, 데이터 일관성의 시점이 크리티컬하지 않은 모든 경우가 대부분이라 판단, Eventual Consistency 를 기본으로 채택함.
+        - 상품으로 교환이 되지 않으면, 리워드의 상태는 그대로 유지가 된다. Sync 호출
+        - 상품 교환 기능이 수행되지 않더라도 미션 달성 및 리워드 발급은 365일 24시간 진행 될 수 있어야 Async (event-driven), Eventual Consistency
+        - 고객이 달성한 미션과 지갑의 리워드 상태를 마이페이지(프론트엔드)에서 확인할 수 있어야 한다 CQRS
 
 
 
 
 ## 헥사고날 아키텍처 다이어그램 도출
     
-![image](https://user-images.githubusercontent.com/487999/79684772-eba9ab00-826e-11ea-9405-17e2bf39ec76.png)
+![image](https://user-images.githubusercontent.com/68723566/93052814-c5fbc300-f6a1-11ea-88f1-0255221b2f28.PNG)
 
 
     - Chris Richardson, MSA Patterns 참고하여 Inbound adaptor와 Outbound adaptor를 구분함
