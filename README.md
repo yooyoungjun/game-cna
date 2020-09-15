@@ -203,6 +203,12 @@ mvn spring-boot:run
 
 cd game-gift
 mvn spring-boot:run 
+
+cd game-mypage
+mvn spring-boot:run 
+
+cd game-payment
+mvn spring-boot:run 
 ```
 
 ## DDD 의 적용
@@ -290,70 +296,8 @@ http localhost:8083/wallets/1
 
 ```
 
-## 동기식 호출 과 Fallback 처리
 
-분석단계에서의 조건 중 하나로 wallet -> gift 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
-
-- reward 서비스를 호출하기 위하여 Stub과 (FeignClient) 를 이용하여 Service 대행 인터페이스 (Proxy) 를 구현 
-
-```
-# (wallet) giftService.java
-
-package game.external;
-
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-
-import java.util.Date;
-
-@FeignClient(name="gift", url="${api.url.gift}", fallback = GiftServiceFallback.class)
-public interface GiftService {
-
-    @RequestMapping(method= RequestMethod.POST, path="/gifts")
-    public void exchange(@RequestBody Gift gift);
-
-}
-```
-
-- update하기 전(@PreUpdate) gift 서비스에 요청하도록 처리
-```
-# Wallet.java (Entity)
-
-    @PreUpdate
-    public void onPreUpdate(){
-        game.external.Gift gift = new game.external.Gift();
-        gift.setWalletId(this.getId());
-        gift.setStatus("Exchanged.");
-        WalletApplication.applicationContext.getBean(game.external.GiftService.class)
-            .exchange(gift);
-    }
-```
-
-- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, gift 시스템이 장애가 나면 위 요청이 실패함:
-
-
-```
-# gift 서비스를 잠시 내려놓음 (ctrl+c)
-
-#Exchanged 처리 (PATCH)
-http localhost:80813/wallets/1 status=Exchanged  #Fail
-
-#gift 서비스 기동
-cd game-gift
-mvn spring-boot:run
-
-#Exchanged 처리 (PATCH)
-http localhost:80813/wallets/1 status=Exchanged    #Success
-```
-
-- 또한 과도한 요청시에 서비스 장애가 도미노 처럼 벌어질 수 있다. (서킷브레이커, 폴백 처리는 운영단계에서 설명한다.)
-
-
-
-
-## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
+## 비동기식 호출 
 
 
 mission 달성이 이루어진 후에 reward에 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하여 mission 시스템이 블락되지 않아도록 처리한다.
@@ -410,218 +354,225 @@ mvn spring-boot:run
 http localhost:8081/missions/1     # rewardId Update됨을 확인
 ```
 
+# 평가 항목
 
-# 운영
+## EKS 배포 확인 (kubectl get all -n game)
+![image](https://user-images.githubusercontent.com/24929411/93156912-14fa3480-f744-11ea-99ae-efa99fba95ea.png)
 
-## CI/CD 설정
+
+
+## Saga (1)
+
+미션 달성 후 Database에 바로 commit 후 미션을 달성했다는 정보를 reward 서비스에 이벤트를 카프카로 송출한다(Publish)
+Mission.java 
+```
+package game;
+
+@Entity
+@Table(name="Mission_table")
+public class Mission {
+...
+    @PostPersist
+    public void onPostPersist(){
+        MissionAchieved missionAchieved = new MissionAchieved();
+        BeanUtils.copyProperties(this, missionAchieved);
+        missionAchieved.publishAfterCommit();
+    }
+...
+}
+```
+
+
+## CQRS (2)
+
+Database 조회 업무만을 수행하기 위한 Mypage 개발 
+
+Mypage.java 
+```
+package game;
+
+import javax.persistence.*;
+import org.springframework.beans.BeanUtils;
+import java.util.List;
+
+@Entity
+@Table(name="Mission_table")
+public class Mission {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    private Long id;
+    private Long customerId;
+    private Long rewardId;
+    private String status;
+
+    @PostPersist
+    public void onPostPersist(){
+        MissionAchieved missionAchieved = new MissionAchieved();
+        BeanUtils.copyProperties(this, missionAchieved);
+        missionAchieved.publishAfterCommit();
+
+
+    }
+```
+MissionId와 RewardId를 통해 데이터베이스를 조회한다. 
+
+MypageRepository.java
+```
+package game;
+
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+
+public interface MypageRepository extends CrudRepository<Mypage, Long> {
+
+    List<Mypage> findByMissionId(Long missionId);
+    List<Mypage> findByRewardId(Long rewardId);
+
+}
+```
+
+
+## Correlation (3) 
+
+
+## 동기식 호출 과 Fallback 처리 (4)
+
+분석단계에서의 조건 중 하나로 wallet -> gift 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
+
+- reward 서비스를 호출하기 위하여 Stub과 (FeignClient) 를 이용하여 Service 대행 인터페이스 (Proxy) 를 구현 
+
+```
+# (wallet) giftService.java
+
+package game.external;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import java.util.Date;
+
+@FeignClient(name="gift", url="${api.url.gift}", fallback = GiftServiceFallback.class)
+public interface GiftService {
+
+    @RequestMapping(method= RequestMethod.POST, path="/gifts")
+    public void exchange(@RequestBody Gift gift);
+
+}
+```
+
+- update하기 전(@PreUpdate) gift 서비스에 요청하도록 처리 - (로직상에서 PATCH로 동작하기 때문에 PreUpdate를 사용했습니다.)
+```
+# Wallet.java (Entity)
+
+    @PreUpdate
+    public void onPreUpdate(){
+        game.external.Gift gift = new game.external.Gift();
+        gift.setWalletId(this.getId());
+        gift.setStatus("Exchanged.");
+        WalletApplication.applicationContext.getBean(game.external.GiftService.class)
+            .exchange(gift);
+    }
+```
+
+- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, gift 시스템이 장애가 나면 위 요청이 실패함:
+
+
+```
+# local test
+# gift 서비스를 잠시 내려놓음 (ctrl+c) 
+
+#Exchanged 처리 (PATCH)
+http localhost:8083/wallets/1 status=Exchanged  #Fail
+
+#gift 서비스 기동
+cd game-gift
+mvn spring-boot:run
+
+#Exchanged 처리 (PATCH)
+http localhost:8083/wallets/1 status=Exchanged    #Success
+```
+
+- 또한 과도한 요청시에 서비스 장애가 도미노 처럼 벌어질 수 있다. (서킷브레이커, 폴백 처리는 운영단계에서 설명한다.)
+
+## Gateway (5)
+* Gateway 프레임워크 선택: Istio
+
+설치된 Istio 확인 
+![image](https://user-images.githubusercontent.com/24929411/93156573-563e1480-f743-11ea-855c-c86cbbfb9787.png)
+
+설치된 Istio Gateway yaml 확인
+![image](https://user-images.githubusercontent.com/24929411/93156697-9f8e6400-f743-11ea-8a3d-04206639292f.png)
+
+설치된 Istio Virtual Service 확인
+![image](https://user-images.githubusercontent.com/24929411/93156795-d2d0f300-f743-11ea-84ff-edf2d868cbab.png)
+
+
+
+## CI/CD 설정 (6)
 
 
 각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 AWS CodeBuild를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 포함되었다.
 
+AWS Console Code Build 화면 (여러 Component들 중 일부만 캡처 했습니다.)
+![image](https://user-images.githubusercontent.com/24929411/93157202-baada380-f744-11ea-862f-9d60033413c0.png)
 
-## 동기식 호출 / 서킷 브레이킹 / 장애격리
+
+
+## 서킷 브레이킹 (7)
 
 * 서킷 브레이킹 프레임워크의 선택: Istio
 
 시나리오는 wallet-->gift 시의 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 결제 요청이 과도할 경우 CB 를 통하여 장애격리.
 
-- Istio 설정: Queue에서 Connection pool 에 연결을 기다리는 request수가 1이 넘어가면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
-```
-# istio DestinationRule
-apiVersion: networking.istio.io/v1alpha3
-kind: DestinationRule
-metadata:
-  name: dr-httpbin
-  namespace: istio-cb-ns
-
-spec:
-  host: httpbin
-  trafficPolicy:
-    connectionPool:
-      http:
-        http1MaxPendingRequests: 1
-        maxRequestsPerConnection: 1
-```
+- Istio DestinationRule 설정: Queue에서 Connection pool 에 연결을 기다리는 request수가 1이 넘어가면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+![image](https://user-images.githubusercontent.com/24929411/93157393-16782c80-f745-11ea-8c75-b92c8e9315a3.png)
 
 * 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
-- 동시사용자 2
-- 10초 동안 실시
 
-```
-TODO eks 설정 완료 후 작성하
-$ siege -c2 -t10S -v --content-type "application/json" 'http://localhost:8081/wallets/1 PATCH {"status": "Exchanged"}'
+(gift 서비스에 GET 요청을 하여 테스트)
 
-** SIEGE 4.0.5
-** Preparing 100 concurrent users for battle.
-The server is now under siege...
+동시 사용자 1, 3초 동안 --> 모두 성공
+![image](https://user-images.githubusercontent.com/24929411/93169459-19cce180-f760-11ea-9f6e-65b23b9cd5b9.png)
 
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.73 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.75 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.77 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.97 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.81 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.87 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.12 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.16 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.17 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.26 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.25 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-* 요청이 과도하여 CB를 동작함 요청을 차단
-
-HTTP/1.1 500     1.29 secs:     248 bytes ==> POST http://localhost:8081/orders   
-HTTP/1.1 500     1.24 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.23 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.42 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     2.08 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.29 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.24 secs:     248 bytes ==> POST http://localhost:8081/orders
-
-* 요청을 어느정도 돌려보내고나니, 기존에 밀린 일들이 처리되었고, 회로를 닫아 요청을 다시 받기 시작
-
-HTTP/1.1 201     1.46 secs:     207 bytes ==> POST http://localhost:8081/orders  
-HTTP/1.1 201     1.33 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.36 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.63 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.65 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.71 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.71 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.74 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.76 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.79 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-* 다시 요청이 쌓이기 시작하여 건당 처리시간이 610 밀리를 살짝 넘기기 시작 => 회로 열기 => 요청 실패처리
-
-HTTP/1.1 500     1.93 secs:     248 bytes ==> POST http://localhost:8081/orders    
-HTTP/1.1 500     1.92 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.93 secs:     248 bytes ==> POST http://localhost:8081/orders
-
-* 생각보다 빨리 상태 호전됨 - (건당 (쓰레드당) 처리시간이 610 밀리 미만으로 회복) => 요청 수락
-
-HTTP/1.1 201     2.24 secs:     207 bytes ==> POST http://localhost:8081/orders  
-HTTP/1.1 201     2.32 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.16 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.19 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.19 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.19 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.21 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.29 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.30 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.38 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.59 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.61 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.62 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.64 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.01 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.27 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.33 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.45 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.52 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.57 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-* 이후 이러한 패턴이 계속 반복되면서 시스템은 도미노 현상이나 자원 소모의 폭주 없이 잘 운영됨
+동시 사용자 2, 3초동안 --> 일부 실패 (동시 요청 수가 1이 넘어가면서 CB가 작동되었음을 알 수 있음)
+![image](https://user-images.githubusercontent.com/24929411/93169647-77f9c480-f760-11ea-95fd-f24b51751649.png)
 
 
-HTTP/1.1 500     4.76 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.23 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.76 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.74 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.82 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.82 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.84 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.66 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     5.03 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.22 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.19 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.18 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.65 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     5.13 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.84 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.25 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.25 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.80 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.87 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.33 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.86 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.96 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.34 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.04 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.50 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.95 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.54 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.65 secs:     207 bytes ==> POST http://localhost:8081/orders
 
 
-:
-:
-
-Transactions:		        1025 hits
-Availability:		       63.55 %
-Elapsed time:		       59.78 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-Successful transactions:        1025
-Failed transactions:	         588
-Longest transaction:	        9.20
-Shortest transaction:	        0.00
-
-```
 - 운영시스템은 죽지 않고 지속적으로 CB 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 하지만 사용성에 있어 좋지 않기 때문에 Retry 설정과 동적 Scale out (replica의 자동적 추가,HPA) 을 통하여 시스템을 확장 해주는 후속처리가 필요.
 
-- Retry 의 설정 (istio)
-- Availability 가 높아진 것을 확인 (siege)
-
-### 오토스케일 아웃
+## 오토스케일 아웃 (8)
 앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다. 
 
 
-- reward 서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다:
+- reward 서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 20프로를 넘어서면 replica 를 10개까지 늘려준다
+HPA 설정 확인
+![image](https://user-images.githubusercontent.com/24929411/93174730-6c5ecb80-f769-11ea-81c6-a5086cc57e01.png)
+
+현재 game-mypage 의 Pod수 확인
+![image](https://user-images.githubusercontent.com/24929411/93174822-a334e180-f769-11ea-937e-3b29597c139a.png)
+
+Siege를 통해 game-mypage Pod에 부하
 ```
-kubectl autoscale deploy game-reward --min=1 --max=10 --cpu-percent=15
-```
-- CB 에서 했던 방식대로 워크로드를 2분 동안 걸어준다.
-```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
-```
-- 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
-```
-kubectl get deploy pay -w
-```
-- 어느정도 시간이 흐른 후 (약 30초) 스케일 아웃이 벌어지는 것을 확인할 수 있다:
-```
-NAME    DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-pay     1         1         1            1           17s
-pay     1         2         1            1           45s
-pay     1         4         1            1           1m
-:
-```
-- siege 의 로그를 보아도 전체적인 성공률이 높아진 것을 확인 할 수 있다. 
-```
-Transactions:		        5078 hits
-Availability:		       92.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
+$ siege -c50 -t50S -v http://game-mypage:8080/mypages/1
 ```
 
+부하에 따라 game-mypage pod의 CPU 사용율이 증가 했고, Pod Replic수가 증가 하는것을 확인할 수 있음 
+![image](https://user-images.githubusercontent.com/24929411/93176312-0e7fb300-f76c-11ea-86d3-3e56074a4a30.png)
 
-## 무정지 재배포
+
+
+
+## 무정지 재배포, Readiness probe 설정 (9)
+
+각각 component에 readiness probe 설정 확인 (game-mission pod의 yaml)
+![image](https://user-images.githubusercontent.com/24929411/93157685-a5854480-f745-11ea-8e50-884ad7f1f4f8.png)
 
 * 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
 
@@ -681,6 +632,22 @@ Concurrency:		       96.02
 ```
 
 배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
+
+## ConfigMap/Persistence Volume (10)
+
+### ConfigMap
+
+Java application.yml 환경변수 적용을 위해 ConfigMap 설정
+
+Mypage Pod (kubectl get pods Mypage -o yaml)
+
+### Persistence Volume
+
+
+
+## Polyglot (11)
+
+
 
 
 
