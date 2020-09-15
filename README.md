@@ -47,8 +47,6 @@ Game 이벤트
     1. 고객이 달성한 미션과 지갑의 리워드 상태를 마이페이지(프론트엔드)에서 확인할 수 있어야 한다  CQRS
 
 
-<img src="https://user-images.githubusercontent.com/64522956/93035984-7f926e00-f679-11ea-81e0-7c39a8e17c2d.png" width="90%"></img>
-
 # 체크포인트
 
 - 분석 설계
