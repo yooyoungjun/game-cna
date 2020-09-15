@@ -131,16 +131,16 @@ Game 이벤트
         - 미션시작됨, 미션결과전송됨, 리워드가선택됨, 리워드정보가전송됨 :  업무적인 의미의 이벤트가 아니라서 제외
 
 ### 액터, 커맨드 부착하여 읽기 좋게
-![image](https://user-images.githubusercontent.com/68723566/93055957-b0d56300-f6a6-11ea-8709-1841eb97b5de.png)
+![image](https://user-images.githubusercontent.com/68723566/93150528-5e428800-f734-11ea-86ab-cb8d82607c86.PNG)
 
 ### 어그리게잇으로 묶기
-![image](https://user-images.githubusercontent.com/68723566/93055952-b03ccc80-f6a6-11ea-91b2-bc5ce3e5575c.png)
+![image](https://user-images.githubusercontent.com/68723566/93150530-5f73b500-f734-11ea-80c1-03d49ec30252.PNG)
 
     - app의 Order, store 의 주문처리, 결제의 결제이력은 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 그들 끼리 묶어줌
 
 ### 바운디드 컨텍스트로 묶기
 
-![image](https://user-images.githubusercontent.com/68723566/93055597-2e4ca380-f6a6-11ea-9659-490691030847.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93150532-600c4b80-f734-11ea-9a07-1be17bba9755.PNG)
 
     - 도메인 서열 분리 
         - Core Domain:  app(front), store : 없어서는 안될 핵심 서비스이며, 연견 Up-time SLA 수준을 99.999% 목표, 배포주기는 app 의 경우 1주일 1회 미만, store 의 경우 1개월 1회 미만
@@ -149,11 +149,11 @@ Game 이벤트
 
 ### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
 
-![image](https://user-images.githubusercontent.com/68723566/93055598-2e4ca380-f6a6-11ea-9795-44f8d2aa6c77.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93150533-60a4e200-f734-11ea-929a-fcd4a940d1c7.PNG)
 
 ### 폴리시의 이동과 컨텍스트 매핑 (점선은 Pub/Sub, 실선은 Req/Resp)
 
-![image](https://user-images.githubusercontent.com/68723566/93055599-2ee53a00-f6a6-11ea-82be-79f3bfa31274.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93150534-60a4e200-f734-11ea-8a82-06a6e3b48289.PNG)
 
 ### 완성된 1차 모형
 
@@ -164,7 +164,7 @@ Game 이벤트
 
 ### 비기능 요구사항에 대한 검증
 
-![image](https://user-images.githubusercontent.com/68723566/93055591-2c82e000-f6a6-11ea-9ad7-bf60afb7df54.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93150535-613d7880-f734-11ea-8bc9-5342aea2cbb0.PNG)
 
     - 마이크로 서비스를 넘나드는 시나리오에 대한 트랜잭션 처리
         - 상품으로 교환이 되지 않으면, 리워드의 상태는 그대로 유지가 된다. Sync 호출
