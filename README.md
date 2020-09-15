@@ -179,7 +179,7 @@ Game 이벤트
 
 ## 헥사고날 아키텍처 다이어그램 도출
     
-![image](https://user-images.githubusercontent.com/68723566/93052814-c5fbc300-f6a1-11ea-88f1-0255221b2f28.PNG)
+![image](https://user-images.githubusercontent.com/68723566/93185524-7a681880-f778-11ea-8372-7e490d648748.PNG)
 
 
     - Chris Richardson, MSA Patterns 참고하여 Inbound adaptor와 Outbound adaptor를 구분함
