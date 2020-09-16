@@ -34,4 +34,27 @@ Game 이벤트
 ![image](https://user-images.githubusercontent.com/68723566/93046088-ecb2fd00-f693-11ea-836f-bd166b106df1.png)
 
 * 개인과제로 Notification 추가
+![image](https://user-images.githubusercontent.com/31755621/93326389-ad330f00-f853-11ea-92ee-b2d2fca29bd0.png)
+1. 미션 달성, 보상 할당, 상품으로 교환 등 이벤트가 발생했을 시에, 이를 통합적으로 발송할 있는 서비스
+
+
+### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
+![image](https://user-images.githubusercontent.com/68723566/93046088-ecb2fd00-f693-11ea-836f-bd166b106df1.png)
+
+    - 고객이 미션을 달성한다 (ok)
+    - 달성 된 미션 결과가 리워드로 할당 된다 (ok)
+    - 할당 된 리워드를 지갑으로 발행한다 (ok)
+    - 리워드가 할당 되면 미션 결과에 반영 된다 (ok)    
+    - 지갑에 발행된 리워드를 상품으로 교환한다 (ok)
+    - 발행 된 결과가 리워드에 반영이 된다 (ok)    
+    
+
+### 비기능 요구사항에 대한 검증
+
+![image](https://user-images.githubusercontent.com/68723566/93150535-613d7880-f734-11ea-8bc9-5342aea2cbb0.PNG)
+
+    - 마이크로 서비스를 넘나드는 시나리오에 대한 트랜잭션 처리
+        - 상품으로 교환이 되지 않으면, 리워드의 상태는 그대로 유지가 된다. Sync 호출
+        - 상품 교환 기능이 수행되지 않더라도 미션 달성 및 리워드 발급은 365일 24시간 진행 될 수 있어야 Async (event-driven), Eventual Consistency
+        - 고객이 달성한 미션과 지갑의 리워드 상태를 마이페이지(프론트엔드)에서 확인할 수 있어야 한다 CQRS
 
