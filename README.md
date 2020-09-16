@@ -754,3 +754,10 @@ Database 조회 업무만을 수행하기 위한 mypage 개발
 
 <img width="773" alt="스크린샷 2020-09-16 오후 6 20 12" src="https://user-images.githubusercontent.com/64522956/93318214-650eef00-f849-11ea-956e-150cb7f3093a.png">
 
+## Gateway, VirtualService, DestinationRule 설정
+
+<img width="590" alt="스크린샷 2020-09-16 오후 6 23 04" src="https://user-images.githubusercontent.com/64522956/93318451-b0290200-f849-11ea-85d9-24fded664e26.png">
+
+kiali 확인
+
+<img width="1766" alt="스크린샷 2020-09-16 오후 6 25 55" src="https://user-images.githubusercontent.com/64522956/93318809-16158980-f84a-11ea-82b1-66bc0348dc5b.png">
