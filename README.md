@@ -57,3 +57,34 @@ Game 이벤트
         - 상품 교환 기능이 수행되지 않더라도 미션 달성 및 리워드 발급은 365일 24시간 진행 될 수 있어야 Async (event-driven), Eventual Consistency
         - 고객이 달성한 미션과 지갑의 리워드 상태를 마이페이지(프론트엔드)에서 확인할 수 있어야 한다 CQRS
 
+
+## 헥사고날 아키텍처 다이어그램 도출
+    
+![image](https://user-images.githubusercontent.com/68723566/93185524-7a681880-f778-11ea-8372-7e490d648748.PNG)
+
+
+    - Chris Richardson, MSA Patterns 참고하여 Inbound adaptor와 Outbound adaptor를 구분함
+    - 호출관계에서 PubSub 과 Req/Resp 를 구분함
+
+
+# 구현:
+
+분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 각 BC별로 대변되는 마이크로 서비스들을 스프링부트로 구현하였다. 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (각자의 포트넘버는 8081 ~ 808n 이다)
+
+```
+cd game-mission
+mvn spring-boot:run
+
+cd game-reward
+mvn spring-boot:run 
+
+cd game-wallet
+mvn spring-boot:run  
+
+cd game-gift
+mvn spring-boot:run 
+
+cd game-mypage
+mvn spring-boot:run 
+
+```
