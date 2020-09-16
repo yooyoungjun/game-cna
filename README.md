@@ -32,3 +32,6 @@ Game 이벤트
 ## Event Storming 결과
 * MSAEz 로 모델링한 이벤트스토밍 결과
 ![image](https://user-images.githubusercontent.com/68723566/93046088-ecb2fd00-f693-11ea-836f-bd166b106df1.png)
+
+* 개인과제로 Notification 추가
+
