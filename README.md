@@ -39,7 +39,6 @@ Game 이벤트
 
 
 ### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
-![image](https://user-images.githubusercontent.com/68723566/93046088-ecb2fd00-f693-11ea-836f-bd166b106df1.png)
 
     - 고객이 미션을 달성한다 (ok)
     - 달성 된 미션 결과가 리워드로 할당 된다 (ok)
