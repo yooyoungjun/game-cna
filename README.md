@@ -87,4 +87,28 @@ mvn spring-boot:run
 cd game-mypage
 mvn spring-boot:run 
 
+cd game-notification
+mvn spring-boot:run
+
 ```
+
+- 적용 후 REST API 
+```
+# mission 서비스의 미션달성 처리 (POST)
+http localhost:8081/missions customerId=11 status=Achieved
+
+# reward 서비스의 조회 (GET)
+http localhost:8082/rewards/1
+
+# reward 서비스의 발급 처리 (PATCH)
+http localhost:8083/wallets/1 status=Exchanged
+
+# wallet 조회 (GET)
+http localhost:8083/wallets/1
+
+# notification 조회 (GET)
+http localhost:8086/notification/1
+
+```
+
+## 비동
