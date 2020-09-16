@@ -750,3 +750,7 @@ livenessProbe:
 Database 조회 업무만을 수행하기 위한 mypage 개발
 <img width="932" alt="스크린샷 2020-09-16 오후 6 17 44" src="https://user-images.githubusercontent.com/64522956/93317884-f16ce200-f848-11ea-889b-d9a26c5e0c50.png">
 
+## ConfigMap, EFS 수정
+
+<img width="773" alt="스크린샷 2020-09-16 오후 6 20 12" src="https://user-images.githubusercontent.com/64522956/93318214-650eef00-f849-11ea-956e-150cb7f3093a.png">
+
