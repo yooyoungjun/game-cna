@@ -115,5 +115,5 @@ http localhost:8086/notification/1
 
 Mission 달성, 보상 할당, 선물 교환 등의 이벤트가 발생시에 알림을 주기 위해서 비 동기식(kafka)로 이벤트를 공유한다.
 
-[!image](https://user-images.githubusercontent.com/31755621/93327990-13b92c80-f856-11ea-8067-2d2f4b7b66d2.png)
+![image](https://user-images.githubusercontent.com/31755621/93327990-13b92c80-f856-11ea-8067-2d2f4b7b66d2.png)
 이벤트 수신을 위한 PolicyHandler를 구현했다.
