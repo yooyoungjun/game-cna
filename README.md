@@ -731,7 +731,7 @@ livenessProbe:
 
 ## EKS 배포 확인 ($ kubectl get all -n game)
 
-![Uploading 스크린샷 2020-09-16 오후 5.39.41.png…]()
+<img width="1447" alt="스크린샷 2020-09-16 오후 5 39 41" src="https://user-images.githubusercontent.com/64522956/93316473-33952400-f847-11ea-9a03-79e0dc54d005.png">
 
 ## Saga (1)
  
