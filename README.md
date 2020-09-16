@@ -636,7 +636,7 @@ Liveness 설정 (테스트를 위해 Persistent Volume 에 미리 healthy 파일
 정상적으로 pod실행 (kubectl describe pod game-mypage-xxx-xxx)
 ![image](https://user-images.githubusercontent.com/24929411/93283808-3c1c3900-f80c-11ea-9624-1e89a9b28807.png)
 
-Liveness 설정 변경경 (/mnt/aws/healthy --> /tmp/healthy 로 변)
+Liveness 설정 변경 (/mnt/aws/healthy --> /tmp/healthy 로 변경)
 ```
 livenessProbe:
   exec:
