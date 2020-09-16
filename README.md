@@ -572,11 +572,11 @@ $ siege -c150 -t60S -v http://game-mypage:8080/mypages/1 
 ![image](https://user-images.githubusercontent.com/24929411/93157685-a5854480-f745-11ea-8e50-884ad7f1f4f8.png)
 
 무정지 재배포 테스트 시나리오
-- siege 로 배포작업 직전에 워크로드를 모니터링함. 
+- siege 로 배포작업 직전에 워크로드를 100초동안 모니터링함. 
 ```
 $ siege -c2 -t100S -v http://game-mypage:8080/mypages/1
 ```
-- game-mypage의 image 버전을 update 
+- 모니터링 도중에 game-mypage의 image 버전을 update 
 ```
 kubectl set image deployment/game-mypage game-mypage=271153858532.dkr.ecr.ap-northeast-2.amazonaws.com/game-mypage:f9231b22ed9426a743caa30f64bf6973e171993e
 ```
@@ -625,3 +625,31 @@ RDS를 사용하는 game-mypage의 application.yml 설정
     password: xxxxxxx
 ...
 ```
+
+## Liveness Probe (12)
+
+- Liveness Probe를 통해 특정 경로밑에 파일이 존재하는지 확인 하면서 컨테이너가 동작 중인지 여부를 판단한다. 
+
+Liveness 설정 (테스트를 위해 Persistent Volume 에 미리 healthy 파일을 생성해 놨습니다.)
+![image](https://user-images.githubusercontent.com/24929411/93283043-af24b000-f80a-11ea-9867-790b7bababe2.png)
+
+정상적으로 pod실행 (kubectl describe pod game-mypage-xxx-xxx)
+![image](https://user-images.githubusercontent.com/24929411/93283808-3c1c3900-f80c-11ea-9624-1e89a9b28807.png)
+
+Liveness 설정 변경경 (/mnt/aws/healthy --> /tmp/healthy 로 변)
+```
+livenessProbe:
+  exec:
+    command:
+    - cat
+    - /mnt/aws/healthy --> /tmp/healthy 로 변
+  failureThreshold: 5
+  initialDelaySeconds: 150
+  periodSeconds: 5
+  successThreshold: 1
+  timeoutSeconds: 2
+```
+
+파일이 없으니 Liveness 체크에 실패를 했고, pod를 재기동 시킵니다.
+![image](https://user-images.githubusercontent.com/24929411/93284147-ff9d0d00-f80c-11ea-8371-aa8684c661ef.png)
+
