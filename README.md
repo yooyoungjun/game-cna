@@ -734,5 +734,19 @@ livenessProbe:
 <img width="1447" alt="스크린샷 2020-09-16 오후 5 39 41" src="https://user-images.githubusercontent.com/64522956/93316473-33952400-f847-11ea-9a03-79e0dc54d005.png">
 
 ## Saga (1)
- 
+
+미션  달성 후 Database에 바로 commit 후 미션을 달성했다는 정보를 reward 서비스에 이벤트를 송출한다(Publish)
+
+데이터 생성 흐름(1) : Mission 달성 -> Reward 지급 -> Wallet에 생성
+
 <img width="1054" alt="스크린샷 2020-09-16 오후 6 04 06" src="https://user-images.githubusercontent.com/64522956/93316363-0e081a80-f847-11ea-891c-dcfb738f00e6.png">
+
+데이터 생성 흐름(2) : Wallet에서 Reward 교환 -> Gift에 생성(교환 내역) -> Payment에 생성(정산 데이터)
+
+<img width="1019" alt="스크린샷 2020-09-16 오후 6 15 52" src="https://user-images.githubusercontent.com/64522956/93317659-b4a0eb00-f848-11ea-864a-84925c7f07ce.png">
+
+## CQRS (2)
+
+Database 조회 업무만을 수행하기 위한 mypage 개발
+<img width="932" alt="스크린샷 2020-09-16 오후 6 17 44" src="https://user-images.githubusercontent.com/64522956/93317884-f16ce200-f848-11ea-889b-d9a26c5e0c50.png">
+
