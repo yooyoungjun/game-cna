@@ -379,6 +379,11 @@ public class Mission {
 }
 ```
 
+데이터 생성 흐름: Mission 달성 --> Reward 지급성 (테스트는 전체 흐름 중 일부분만 캡처했습니다.)
+![image](https://user-images.githubusercontent.com/24929411/93293070-113cdf80-f822-11ea-8777-89539c1625a5.png)
+
+
+
 
 ## CQRS (2)
 
@@ -429,6 +434,62 @@ public interface MypageRepository extends CrudRepository<Mypage, Long> {
     List<Mypage> findByRewardId(Long rewardId);
 
 }
+```
+Mission, Reward 에서 Update가 발생하면 mypage에도 적용됨 (mypage MypageViewHandler.java)
+```
+...
+   @StreamListener(KafkaProcessor.INPUT)
+    public void whenAllocated_then_UPDATE_1(@Payload Allocated allocated) {
+        try {
+            if (allocated.isMe()) {
+                // view 객체 조회
+                List<Mypage> mypageList = mypageRepository.findByMissionId(allocated.getMissionId());
+                for(Mypage mypage : mypageList){
+                    // view 객체에 이벤트의 eventDirectValue 를 set 함
+                    mypage.setRewardId(allocated.getId());
+                    // view 레파지 토리에 save
+                    mypageRepository.save(mypage);
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+    @StreamListener(KafkaProcessor.INPUT)
+    public void whenIssued_then_UPDATE_2(@Payload Issued issued) {
+        try {
+            if (issued.isMe()) {
+                // view 객체 조회
+                List<Mypage> mypageList = mypageRepository.findByRewardId(issued.getId());
+                for(Mypage mypage : mypageList){
+                    // view 객체에 이벤트의 eventDirectValue 를 set 함
+                    mypage.setRewardStatus(issued.getStatus());
+                    // view 레파지 토리에 save
+                    mypageRepository.save(mypage);
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+    @StreamListener(KafkaProcessor.INPUT)
+    public void whenExchanged_then_UPDATE_3(@Payload Exchanged exchanged) {
+        try {
+            if (exchanged.isMe()) {
+                // view 객체 조회
+                List<Mypage> mypageList = mypageRepository.findByRewardId(exchanged.getId());
+                for(Mypage mypage : mypageList){
+                    // view 객체에 이벤트의 eventDirectValue 를 set 함
+                    mypage.setRewardStatus(exchanged.getStatus());
+                    // view 레파지 토리에 save
+                    mypageRepository.save(mypage);
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+...
 ```
 
 
@@ -598,6 +659,17 @@ configMap으로 부터 변수 가져오는 설정:
 
 configMap에 설정된 데이터 확인 (kubectl get cm teamb-config -o yaml)
 ![image](https://user-images.githubusercontent.com/24929411/93177339-a03bf000-f76d-11ea-9199-b77ad9867c9d.png)
+
+mypage Application에서 configMap data를 사용하는 부분(mypage의 application.yml)
+```
+...
+  datasource:
+    url: jdbc:mariadb://${DB_URL}/teamb-mariadb?useUnicode=yes&characterEncoding=UTF-8
+    driver-class-name: org.mariadb.jdbc.Driver
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+...
+```
 
 
 ### Persistence Volume
