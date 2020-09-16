@@ -728,3 +728,11 @@ livenessProbe:
 ## 개인 Project
 
 ![personal](https://user-images.githubusercontent.com/64522956/93314498-cb454300-f844-11ea-8a74-0def3e22474b.png)
+
+## EKS 배포 확인 ($ kubectl get all -n game)
+
+![Uploading 스크린샷 2020-09-16 오후 5.39.41.png…]()
+
+## Saga (1)
+ 
+<img width="1054" alt="스크린샷 2020-09-16 오후 6 04 06" src="https://user-images.githubusercontent.com/64522956/93316363-0e081a80-f847-11ea-891c-dcfb738f00e6.png">
